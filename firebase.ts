@@ -18,7 +18,7 @@ const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
 const db = getFirestore(app);
 const storage = getStorage(app);
-const functions = getFunctions(app);
+const functions = getFunctions(app, "asia-south1");
 
 // Connect to emulators if running locally (must be done before any operations)
 if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
