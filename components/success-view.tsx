@@ -4,90 +4,63 @@ import { Button } from "@/components/ui/button"
 import { Download, Share2, Sparkles, Award, CheckCircle, Star, PartyPopper, Home } from "lucide-react"
 import Link from "next/link"
 import { useState, useEffect } from "react"
-import { db } from "@/firebase"
-import { collection, query, where, getDocs, onSnapshot } from "firebase/firestore"
+import { functions } from "@/firebase"
+import { httpsCallable } from "firebase/functions"
 import { useLanguage } from "@/lib/language-context"
 
 interface SuccessViewProps {
   name: string
   phone: string
+  pledgeId: string
 }
 
-export default function SuccessView({ name, phone }: SuccessViewProps) {
+export default function SuccessView({ name, phone, pledgeId }: SuccessViewProps) {
   const { t } = useLanguage()
   const [isDownloading, setIsDownloading] = useState(false)
   const [isSharing, setIsSharing] = useState(false)
   const [certificateUrl, setCertificateUrl] = useState<string | null>(null)
-  const [pledgeId, setPledgeId] = useState<string | null>(null)
   const [certificateLoaded, setCertificateLoaded] = useState(false)
 
 
-  // Real-time certificate listener - instant updates when certificate is ready
+  // Poll for certificate readiness via Cloud Function
   useEffect(() => {
-    let unsubscribe: (() => void) | null = null;
+    if (!pledgeId) return
 
-    const setupListener = async () => {
+    let cancelled = false
+    const checkCertificateFn = httpsCallable<
+      { pledgeId: string },
+      { certificateUrl: string | null; ready: boolean }
+    >(functions, "checkCertificate")
+
+    const poll = async () => {
       try {
-        // First, find the pledge document
-        const q = query(
-          collection(db, "pledges"),
-          where("fullName", "==", name),
-          where("phone", "==", phone)
-        )
-        const snapshot = await getDocs(q)
-
-        if (!snapshot.empty) {
-          const doc = snapshot.docs[0]
-          const docId = doc.id
-          setPledgeId(docId)
-
-          // Check if certificate is already available
-          const data = doc.data()
-          if (data.certificateUrl) {
-            console.log("Certificate URL already available:", data.certificateUrl)
-            setCertificateUrl(data.certificateUrl)
-            return // No need for listener
-          }
-
-          // Set up real-time listener for instant certificate detection
-          console.log("Setting up real-time listener for certificate...")
-          unsubscribe = onSnapshot(doc.ref, (docSnapshot) => {
-            const updatedData = docSnapshot.data()
-            if (updatedData?.certificateUrl) {
-              console.log("Certificate ready (real-time):", updatedData.certificateUrl)
-              setCertificateUrl(updatedData.certificateUrl)
-              // Clean up listener once we have the URL
-              if (unsubscribe) {
-                unsubscribe()
-                unsubscribe = null
-              }
-            }
-          }, (error) => {
-            console.error("Real-time listener error:", error)
-          })
-        } else {
-          console.log("No pledge document found")
+        const result = await checkCertificateFn({ pledgeId })
+        if (!cancelled && result.data.ready && result.data.certificateUrl) {
+          setCertificateUrl(result.data.certificateUrl)
+          return // Stop polling
         }
       } catch (err) {
-        console.error("Error setting up certificate listener:", err)
+        console.error("Error checking certificate:", err)
+      }
+      // Retry after 3 seconds if not ready
+      if (!cancelled) {
+        setTimeout(poll, 3000)
       }
     }
 
-    setupListener()
+    poll()
 
     // Timeout after 60 seconds
     const timeout = setTimeout(() => {
-      if (unsubscribe) {
-        unsubscribe()
-        console.log("Certificate listener timed out")
-      }
+      cancelled = true
+      console.log("Certificate polling timed out")
     }, 60000)
 
     return () => {
-      if (unsubscribe) unsubscribe()
+      cancelled = true
       clearTimeout(timeout)
     }
-  }, [name, phone])
+  }, [pledgeId])
 
   // Download handler
   const handleDownload = async () => {

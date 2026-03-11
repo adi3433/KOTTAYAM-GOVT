@@ -5,12 +5,12 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Loader2 } from "lucide-react"
-import { db } from "@/firebase"
-import { collection, addDoc, serverTimestamp, query, where, getDocs } from "firebase/firestore"
+import { functions } from "@/firebase"
+import { httpsCallable } from "firebase/functions"
 import { useLanguage } from "@/lib/language-context"
 
 interface PledgeFormProps {
-  onSuccess: (name: string, phone: string) => void
+  onSuccess: (name: string, phone: string, pledgeId: string) => void
 }
 
 export default function PledgeForm({ onSuccess }: PledgeFormProps) {
@@ -45,34 +45,6 @@ export default function PledgeForm({ onSuccess }: PledgeFormProps) {
     return null // No error
   }
 
-  // Check if both name and phone already exist together in database (same person)
-  const checkDuplicatePledge = async (name: string, phoneNumber: string): Promise<boolean> => {
-    try {
-      // Query for pledges with the same phone number
-      const q = query(
-        collection(db, "pledges"),
-        where("phone", "==", phoneNumber)
-      )
-      const snapshot = await getDocs(q)
-
-      // Check if any existing pledge has both same name AND same phone
-      for (const doc of snapshot.docs) {
-        const data = doc.data()
-        // Normalize names for comparison (trim and lowercase)
-        const existingName = (data.fullName || "").trim().toLowerCase()
-        const newName = name.trim().toLowerCase()
-        if (existingName === newName) {
-          return true // Duplicate found - same name and phone
-        }
-      }
-
-      return false // No duplicate - allow different name with same phone or different phone
-    } catch (error) {
-      console.error("Error checking duplicate:", error)
-      return false
-    }
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     const newErrors: Record<string, string> = {}
@@ -102,9 +74,15 @@ export default function PledgeForm({ onSuccess }: PledgeFormProps) {
     setIsLoading(true)
 
     try {
-      // Check for duplicate pledge (both name AND phone must match)
-      const isDuplicate = await checkDuplicatePledge(trimmedName, phone)
-      if (isDuplicate) {
+      // Submit pledge via Cloud Function (handles duplicate check + creation server-side)
+      const submitPledgeFn = httpsCallable<
+        { fullName: string; phone: string },
+        { pledgeId: string; isDuplicate: boolean; certificateUrl: string | null }
+      >(functions, "submitPledge")
+
+      const result = await submitPledgeFn({ fullName: trimmedName, phone })
+
+      if (result.data.isDuplicate) {
         setErrors({
           phone: t("form.errorDuplicate") || "You have already taken the pledge with this name and phone number"
         })
@@ -112,15 +90,8 @@ export default function PledgeForm({ onSuccess }: PledgeFormProps) {
         return
       }
 
-      // Add pledge document to Firestore
-      await addDoc(collection(db, "pledges"), {
-        fullName: trimmedName,
-        phone,
-        timestamp: serverTimestamp(),
-      })
-
-      // Move to success view
-      onSuccess(trimmedName, phone)
+      // Move to success view with pledgeId
+      onSuccess(trimmedName, phone, result.data.pledgeId)
     } catch (err) {
       console.error("Error submitting pledge:", err)
       alert(t("common.error"))

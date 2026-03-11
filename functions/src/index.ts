@@ -1,5 +1,5 @@
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
-import { onRequest } from "firebase-functions/v2/https";
+import { onRequest, onCall, HttpsError } from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
 import sharp from "sharp";
 import * as path from "path";
@@ -313,12 +313,95 @@ export const generateCertificate = onDocumentCreated({
       certificateGeneratedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
+    // Increment pledge counter
+    await getDb().collection("stats").doc("pledgeCount").set(
+      { count: admin.firestore.FieldValue.increment(1) },
+      { merge: true }
+    );
+
     const duration = Date.now() - startTime;
     console.log(`Certificate generated for ${pledgeId} in ${duration}ms`);
 
     return { success: true, url: publicUrl };
   }
 );
+
+// ============================================
+// SUBMIT PLEDGE - Server-side pledge creation
+// ============================================
+export const submitPledge = onCall({
+  region: "asia-south1",
+  enforceAppCheck: false,
+}, async (request) => {
+  const { fullName, phone } = request.data;
+
+  // Validate fullName
+  if (typeof fullName !== "string" || fullName.trim().length < 2 || fullName.trim().length > 100) {
+    throw new HttpsError("invalid-argument", "Invalid name");
+  }
+  // Validate phone - Indian mobile number
+  if (typeof phone !== "string" || !/^[6-9][0-9]{9}$/.test(phone)) {
+    throw new HttpsError("invalid-argument", "Invalid phone number");
+  }
+
+  const trimmedName = fullName.trim();
+  const db = getDb();
+
+  // Check for duplicate pledge (same name + phone)
+  const existingPledges = await db.collection("pledges")
+    .where("phone", "==", phone)
+    .get();
+
+  for (const doc of existingPledges.docs) {
+    const data = doc.data();
+    if ((data.fullName || "").trim().toLowerCase() === trimmedName.toLowerCase()) {
+      // Return existing pledge info instead of creating duplicate
+      return {
+        pledgeId: doc.id,
+        isDuplicate: true,
+        certificateUrl: data.certificateUrl || null,
+      };
+    }
+  }
+
+  // Create new pledge
+  const pledgeRef = await db.collection("pledges").add({
+    fullName: trimmedName,
+    phone,
+    timestamp: admin.firestore.FieldValue.serverTimestamp(),
+  });
+
+  return {
+    pledgeId: pledgeRef.id,
+    isDuplicate: false,
+    certificateUrl: null,
+  };
+});
+
+// ============================================
+// CHECK CERTIFICATE - Check if certificate is ready
+// ============================================
+export const checkCertificate = onCall({
+  region: "asia-south1",
+  enforceAppCheck: false,
+}, async (request) => {
+  const { pledgeId } = request.data;
+
+  if (typeof pledgeId !== "string" || pledgeId.length === 0 || pledgeId.length > 40) {
+    throw new HttpsError("invalid-argument", "Invalid pledge ID");
+  }
+
+  const doc = await getDb().collection("pledges").doc(pledgeId).get();
+  if (!doc.exists) {
+    throw new HttpsError("not-found", "Pledge not found");
+  }
+
+  const data = doc.data();
+  return {
+    certificateUrl: data?.certificateUrl || null,
+    ready: !!data?.certificateUrl,
+  };
+});
 
 // Download certificate endpoint
 export const downloadCertificate = onRequest({

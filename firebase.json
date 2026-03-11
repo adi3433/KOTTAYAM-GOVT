@@ -17,8 +17,7 @@
     }
   ],
   "firestore": {
-    "rules": "firestore.rules",
-    "database": "kottayamofficial"
+    "rules": "firestore.rules"
   },
   "storage": {
     "rules": "storage.rules",

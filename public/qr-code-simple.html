@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SVEEP Kottayam - Simple QR Code</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Outfit', sans-serif;
+            background: #f0f2f5;
+            padding: 20px;
+        }
+
+        .qr-card {
+            background: white;
+            padding: 40px;
+            border-radius: 24px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .qr-wrapper {
+            position: relative;
+            width: 350px;
+            height: 350px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* The QR Code - using high error correction (H) so covering the center works */
+        .qr-image {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        /* The Logo Overlay */
+        .center-logo {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80px;
+            height: 80px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+            padding: 5px;
+            z-index: 10;
+        }
+
+        .center-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .title {
+            margin-top: 25px;
+            font-size: 24px;
+            font-weight: 700;
+            color: #1a1a2e;
+        }
+
+        .subtitle {
+            margin-top: 5px;
+            color: #666;
+            font-size: 16px;
+        }
+
+        .download-btn {
+            margin-top: 30px;
+            padding: 12px 24px;
+            background: #000080;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.2s;
+            text-decoration: none;
+        }
+
+        .download-btn:hover {
+            background: #000060;
+            transform: translateY(-2px);
+        }
+
+        @media print {
+            body {
+                background: white;
+            }
+
+            .qr-card {
+                box-shadow: none;
+            }
+
+            .download-btn {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="qr-card">
+        <div class="qr-wrapper">
+            <!-- QR Code with High Error Correction (ecc=H) to support logo overlay -->
+            <img class="qr-image"
+                src="https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=https://sveepkottayam.dev&color=000000&bgcolor=FFFFFF&format=png&ecc=H&margin=1"
+                alt="Scan to Vote">
+
+            <!-- Centered Logo -->
+            <div class="center-logo">
+                <img src="sveep-logo.png" alt="SVEEP">
+            </div>
+        </div>
+
+        <h1 class="title">SVEEP Kottayam</h1>
+        <p class="subtitle">Scan to Take the Voter Pledge</p>
+
+        <button class="download-btn" onclick="window.print()">🖨️ Print QR Code</button>
+    </div>
+
+</body>
+
+</html>

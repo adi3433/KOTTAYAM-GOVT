@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { Users, Vote, TrendingUp, Award } from "lucide-react"
 import { useLanguage } from "@/lib/language-context"
 import { db } from "@/firebase"
-import { collection, onSnapshot } from "firebase/firestore"
+import { doc, onSnapshot } from "firebase/firestore"
 
 interface StatItemProps {
   icon: React.ReactNode
@@ -116,10 +116,11 @@ export default function StatsSection() {
   const { t } = useLanguage()
   const [pledgeCount, setPledgeCount] = useState(0)
 
-  // Listen to real-time pledge count from Firestore
+  // Listen to real-time pledge count from counter document (no PII exposure)
   useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, "pledges"), (snapshot) => {
-      setPledgeCount(snapshot.size)
+    const unsubscribe = onSnapshot(doc(db, "stats", "pledgeCount"), (snapshot) => {
+      const data = snapshot.data()
+      setPledgeCount(data?.count || 0)
     })
 
     return () => unsubscribe()

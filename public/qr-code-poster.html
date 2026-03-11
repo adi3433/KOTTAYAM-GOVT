@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SVEEP Kottayam - Voter Pledge QR Code</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Outfit', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            padding: 20px;
+        }
+
+        .poster-container {
+            width: 800px;
+            min-height: 1000px;
+            background: linear-gradient(180deg,
+                    #FF9933 0%,
+                    #FF9933 8%,
+                    #FFFFFF 8%,
+                    #FFFFFF 50%,
+                    #138808 50%,
+                    #138808 100%);
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow:
+                0 25px 80px rgba(0, 0, 0, 0.4),
+                0 0 0 4px rgba(255, 255, 255, 0.1),
+                inset 0 0 100px rgba(255, 255, 255, 0.05);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .poster-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border: 8px solid transparent;
+            border-image: linear-gradient(45deg, #FF9933, #000080, #138808, #FF9933) 1;
+            pointer-events: none;
+            border-radius: 24px;
+            z-index: 10;
+        }
+
+        .header-section {
+            background: linear-gradient(135deg, #FF9933 0%, #FFB366 100%);
+            padding: 40px 40px 30px;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header-section::after {
+            content: '';
+            position: absolute;
+            bottom: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 40px solid transparent;
+            border-right: 40px solid transparent;
+            border-top: 30px solid #FFB366;
+            z-index: 2;
+        }
+
+        .logos-row {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 40px;
+            margin-bottom: 20px;
+        }
+
+        .logo-badge {
+            width: 90px;
+            height: 90px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            padding: 10px;
+            overflow: hidden;
+            transition: transform 0.3s ease;
+        }
+
+        .logo-badge img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .header-title {
+            font-size: 36px;
+            font-weight: 800;
+            color: #000080;
+            text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.5);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin: 0;
+            line-height: 1.2;
+        }
+
+        .main-content {
+            background: linear-gradient(180deg, #FFFFFF 0%, #F8F9FA 100%);
+            padding: 60px 40px 50px;
+            text-align: center;
+            position: relative;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .chakra-watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 450px;
+            height: 450px;
+            opacity: 0.04;
+            pointer-events: none;
+        }
+
+        .tagline {
+            font-size: 24px;
+            color: #FF9933;
+            font-weight: 700;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+        }
+
+        .main-title {
+            font-size: 48px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #000080 0%, #1a1a8e 50%, #138808 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+            line-height: 1.1;
+        }
+
+        .subtitle {
+            font-size: 20px;
+            color: #555;
+            margin-bottom: 45px;
+            font-weight: 500;
+        }
+
+        .qr-container {
+            display: inline-block;
+            padding: 25px;
+            background: linear-gradient(135deg, #000080 0%, #1a237e 100%);
+            border-radius: 20px;
+            box-shadow:
+                0 20px 60px rgba(0, 0, 128, 0.25),
+                0 8px 25px rgba(0, 0, 128, 0.15);
+            position: relative;
+            margin-bottom: 35px;
+        }
+
+        .qr-container::before {
+            content: '';
+            position: absolute;
+            top: -4px;
+            left: -4px;
+            right: -4px;
+            bottom: -4px;
+            background: linear-gradient(135deg, #FF9933, #000080, #138808);
+            border-radius: 24px;
+            z-index: -1;
+        }
+
+        .qr-inner {
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+        }
+
+        #qrcode {
+            width: 300px;
+            height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #qrcode img {
+            width: 100%;
+            height: 100%;
+            border-radius: 8px;
+        }
+
+        .scan-instruction {
+            font-size: 24px;
+            font-weight: 700;
+            color: #000080;
+            margin-bottom: 10px;
+        }
+
+        .url-display {
+            font-size: 20px;
+            color: #138808;
+            font-weight: 700;
+            background: linear-gradient(90deg, #f0f9f0, #fff9f0);
+            padding: 12px 35px;
+            border-radius: 50px;
+            display: inline-block;
+            border: 2px dashed #138808;
+            letter-spacing: 0.5px;
+        }
+
+        .footer-section {
+            background: linear-gradient(135deg, #138808 0%, #0d5c06 100%);
+            padding: 40px 40px;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .footer-section::before {
+            content: '';
+            position: absolute;
+            top: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 40px solid transparent;
+            border-right: 40px solid transparent;
+            border-bottom: 30px solid #138808;
+        }
+
+        .footer-quote {
+            font-size: 20px;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 25px;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.3);
+            line-height: 1.4;
+        }
+
+        .org-info {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .org-badge {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 10px 25px;
+            border-radius: 50px;
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .authority-info {
+            margin-bottom: 30px;
+            color: white;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.3);
+        }
+
+        .authority-name {
+            font-size: 24px;
+            font-weight: 800;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #FF9933;
+            background: rgba(255, 255, 255, 0.15);
+            padding: 8px 25px;
+            border-radius: 50px;
+            display: inline-block;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .authority-desig {
+            font-size: 16px;
+            font-weight: 600;
+            opacity: 0.95;
+            letter-spacing: 0.5px;
+            margin-top: 5px;
+        }
+
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+
+            .poster-container {
+                box-shadow: none;
+                border-radius: 0;
+                width: 100%;
+                min-height: 100%;
+            }
+        }
+
+        @media (max-width: 850px) {
+            .poster-container {
+                width: 100%;
+                max-width: 500px;
+                min-height: auto;
+            }
+
+            .header-title {
+                font-size: 24px;
+            }
+
+            .main-title {
+                font-size: 32px;
+            }
+
+            #qrcode {
+                width: 220px;
+                height: 220px;
+            }
+
+            .footer-quote {
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="poster-container">
+
+        <div class="header-section">
+            <div class="logos-row">
+                <div class="logo-badge">
+                    <img src="sveep-logo.png" alt="SVEEP Logo">
+                </div>
+                <div class="logo-badge">
+                    <img src="ec-logo.png" alt="Election Commission Logo">
+                </div>
+                <div class="logo-badge">
+                    <img src="iiit-kottayam-logo.png" alt="IIIT Kottayam Logo">
+                </div>
+            </div>
+            <h1 class="header-title">SVEEP KOTTAYAM DISTRICT</h1>
+        </div>
+
+        <div class="main-content">
+            <div class="chakra-watermark">
+                <svg viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="45" fill="none" stroke="#000080" stroke-width="2" />
+                    <circle cx="50" cy="50" r="10" fill="#000080" />
+                    <g stroke="#000080" stroke-width="1.5">
+                        <line x1="50" y1="5" x2="50" y2="40" />
+                        <line x1="50" y1="60" x2="50" y2="95" />
+                        <line x1="5" y1="50" x2="40" y2="50" />
+                        <line x1="60" y1="50" x2="95" y2="50" />
+                        <line x1="18.2" y1="18.2" x2="40" y2="40" />
+                        <line x1="60" y1="60" x2="81.8" y2="81.8" />
+                        <line x1="81.8" y1="18.2" x2="60" y2="40" />
+                        <line x1="40" y1="60" x2="18.2" y2="81.8" />
+                    </g>
+                </svg>
+            </div>
+
+            <p class="tagline">Take the Pledge</p>
+            <h2 class="main-title">Voter Pledge Portal</h2>
+            <p class="subtitle">Kerala Legislative Assembly Election 2026</p>
+
+            <div class="qr-container">
+                <div class="qr-inner">
+                    <div id="qrcode">
+                        <!-- Real scannable QR code from QR Server API - Black (#000000) for maximum scan compatibility -->
+                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=https://sveepkottayam.dev&color=000000&bgcolor=FFFFFF&format=png&qzone=1&margin=0"
+                            alt="QR Code for sveepkottayam.dev"
+                            onerror="this.onerror=null; this.src='https://chart.googleapis.com/chart?chs=300x300&cht=qr&chl=https://sveepkottayam.dev&chco=000000';">
+                    </div>
+                </div>
+            </div>
+
+            <p class="scan-instruction">📱 Scan to Take Your Pledge</p>
+            <p class="url-display">sveepkottayam.dev</p>
+        </div>
+
+        <div class="footer-section">
+            <p class="footer-quote">"My India, My Vote" <br> Citizen at the Heart of Indian Democracy</p>
+
+            <div class="authority-info">
+                <div class="authority-name">Chetan Kumar Meena IAS</div>
+                <div class="authority-desig">District Collector, Kottayam</div>
+            </div>
+
+            <div class="org-info">
+                <span class="org-badge">District Election Officer, Kottayam</span>
+                <span class="org-badge">IIIT Kottayam</span>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

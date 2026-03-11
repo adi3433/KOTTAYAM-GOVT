@@ -16,6 +16,7 @@ export default function Home() {
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [pledgerName, setPledgerName] = useState("")
   const [pledgerPhone, setPledgerPhone] = useState("")
+  const [pledgeId, setPledgeId] = useState("")
   const [scrollY, setScrollY] = useState(0)
   const { t } = useLanguage()
 
@@ -44,7 +45,7 @@ export default function Home() {
 
   // When certificate is shown, render only the SuccessView without navbar/footer/ticker
   if (isSubmitted) {
-    return <SuccessView name={pledgerName} phone={pledgerPhone} />
+    return <SuccessView name={pledgerName} phone={pledgerPhone} pledgeId={pledgeId} />
   }
 
   return (
@@ -169,9 +170,10 @@ export default function Home() {
 
         <div id="pledge-form">
           <PledgeForm
-            onSuccess={(name: string, phone: string) => {
+            onSuccess={(name: string, phone: string, pledgeId: string) => {
               setPledgerName(name)
               setPledgerPhone(phone)
+              setPledgeId(pledgeId)
               setIsSubmitted(true)
             }}
           />
