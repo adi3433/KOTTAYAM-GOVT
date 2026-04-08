@@ -5,7 +5,6 @@ import Navbar from "@/components/navbar"
 import NewsTicker from "@/components/news-ticker"
 import PledgeForm from "@/components/pledge-form"
 import SuccessView from "@/components/success-view"
-import StatsSection from "@/components/stats-section"
 import FAQSection from "@/components/faq-section"
 import TrustIndicators from "@/components/trust-indicators"
 import Footer from "@/components/footer"
@@ -178,7 +177,6 @@ export default function Home() {
             }}
           />
         </div>
-        <StatsSection />
         <FAQSection />
         <TrustIndicators />
       </main>
