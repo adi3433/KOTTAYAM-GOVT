@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { Users, Vote, TrendingUp, Award } from "lucide-react"
+import { Vote, Award } from "lucide-react"
 import { useLanguage } from "@/lib/language-context"
 import { db } from "@/firebase"
 import { doc, onSnapshot } from "firebase/firestore"
@@ -126,31 +126,6 @@ export default function StatsSection() {
     return () => unsubscribe()
   }, [])
 
-  const stats = [
-    {
-      icon: <Vote className="w-5 h-5 sm:w-7 sm:h-7 text-blue-600 dark:text-blue-400" />,
-      value: pledgeCount,
-      label: t("stats.totalPledges"),
-      color: "bg-blue-500",
-      delay: 0,
-    },
-    {
-      icon: <Users className="w-5 h-5 sm:w-7 sm:h-7 text-green-600 dark:text-green-400" />,
-      value: 1247856,
-      label: t("stats.registeredVoters"),
-      color: "bg-green-500",
-      delay: 150,
-    },
-    {
-      icon: <TrendingUp className="w-5 h-5 sm:w-7 sm:h-7 text-orange-600 dark:text-orange-400" />,
-      value: 78,
-      suffix: "%",
-      label: t("stats.youthParticipation"),
-      color: "bg-orange-500",
-      delay: 300,
-    },
-  ]
-
   return (
     <section className="py-10 sm:py-16 px-3 sm:px-4 bg-gradient-to-b from-slate-50 to-white dark:from-slate-900 dark:to-slate-800">
       <div className="max-w-6xl mx-auto">
@@ -163,10 +138,16 @@ export default function StatsSection() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
-          {stats.map((stat, index) => (
-            <StatItem key={index} {...stat} />
-          ))}
+        <div className="flex justify-center">
+          <div className="w-full max-w-sm">
+            <StatItem
+              icon={<Vote className="w-5 h-5 sm:w-7 sm:h-7 text-blue-600 dark:text-blue-400" />}
+              value={pledgeCount}
+              label={t("stats.totalPledges")}
+              color="bg-blue-500"
+              delay={0}
+            />
+          </div>
         </div>
       </div>
     </section>

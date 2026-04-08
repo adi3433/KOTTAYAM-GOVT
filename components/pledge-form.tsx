@@ -36,6 +36,7 @@ export default function PledgeForm({ onSuccess }: PledgeFormProps) {
     if (!/^[6-9]/.test(phoneNumber)) {
       return t("form.errorPhoneInvalid") || "Please enter a valid Indian mobile number"
     }
+    
 
     // Final validation - should be exactly 10 digits starting with 6-9
     if (!/^[6-9][0-9]{9}$/.test(phoneNumber)) {
@@ -93,8 +94,7 @@ export default function PledgeForm({ onSuccess }: PledgeFormProps) {
       // Move to success view with pledgeId
       onSuccess(trimmedName, phone, result.data.pledgeId)
     } catch (err) {
-      console.error("Error submitting pledge:", err)
-      alert(t("common.error"))
+      setErrors(prev => ({ ...prev, submit: t("common.error") || "Something went wrong. Please try again." }))
     } finally {
       setIsLoading(false)
     }
@@ -143,7 +143,7 @@ export default function PledgeForm({ onSuccess }: PledgeFormProps) {
                 value={fullName}
                 onChange={(e) => {
                   setFullName(e.target.value)
-                  if (errors.fullName) setErrors({ ...errors, fullName: "" })
+                  if (errors.fullName) setErrors(prev => ({ ...prev, fullName: "" }))
                 }}
                 placeholder={t("form.fullNamePlaceholder")}
                 className="h-12 text-base border-2 border-slate-200 dark:border-slate-600 focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-900 rounded-lg transition-all hover:border-blue-300 dark:hover:border-slate-500 hover:shadow-md bg-white dark:bg-slate-900"
@@ -167,7 +167,7 @@ export default function PledgeForm({ onSuccess }: PledgeFormProps) {
                 value={phone}
                 onChange={(e) => {
                   setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))
-                  if (errors.phone) setErrors({ ...errors, phone: "" })
+                  if (errors.phone) setErrors(prev => ({ ...prev, phone: "" }))
                 }}
                 placeholder={t("form.phonePlaceholder")}
                 maxLength={10}
@@ -189,6 +189,13 @@ export default function PledgeForm({ onSuccess }: PledgeFormProps) {
                 {t("form.securityNotice")}
               </p>
             </div>
+
+            {/* Submit error */}
+            {errors.submit && (
+              <p className="text-sm text-red-600 dark:text-red-400 font-medium text-center animate-fade-in" role="alert">
+                {errors.submit}
+              </p>
+            )}
 
             {/* Submit */}
             <Button

@@ -20,13 +20,18 @@ export default function SuccessView({ name, phone, pledgeId }: SuccessViewProps)
   const [isSharing, setIsSharing] = useState(false)
   const [certificateUrl, setCertificateUrl] = useState<string | null>(null)
   const [certificateLoaded, setCertificateLoaded] = useState(false)
+  const [pollingTimedOut, setPollingTimedOut] = useState(false)
 
+  const DOWNLOAD_BASE_URL =
+    process.env.NEXT_PUBLIC_DOWNLOAD_FUNCTION_URL ??
+    "https://asia-south1-kottayam-official.cloudfunctions.net/downloadCertificate"
 
-  // Poll for certificate readiness via Cloud Function
+  // Poll for certificate readiness via Cloud Function (exponential backoff)
   useEffect(() => {
     if (!pledgeId) return
 
     let cancelled = false
+    let delay = 3000
     const checkCertificateFn = httpsCallable<
       { pledgeId: string },
       { certificateUrl: string | null; ready: boolean }
@@ -37,23 +42,22 @@ export default function SuccessView({ name, phone, pledgeId }: SuccessViewProps)
         const result = await checkCertificateFn({ pledgeId })
         if (!cancelled && result.data.ready && result.data.certificateUrl) {
           setCertificateUrl(result.data.certificateUrl)
-          return // Stop polling
+          return
         }
       } catch (err) {
         console.error("Error checking certificate:", err)
       }
-      // Retry after 3 seconds if not ready
       if (!cancelled) {
-        setTimeout(poll, 3000)
+        delay = Math.min(delay * 1.5, 15000)
+        setTimeout(poll, delay)
       }
     }
 
     poll()
 
-    // Timeout after 60 seconds
     const timeout = setTimeout(() => {
       cancelled = true
-      console.log("Certificate polling timed out")
+      setPollingTimedOut(true)
     }, 60000)
 
     return () => {
@@ -64,20 +68,12 @@ export default function SuccessView({ name, phone, pledgeId }: SuccessViewProps)
 
   // Download handler
   const handleDownload = async () => {
-    if (!pledgeId) {
-      alert(t("success.notReady"))
-      return
-    }
-
+    if (!pledgeId) return
     setIsDownloading(true)
-
     try {
-      const functionUrl = `https://asia-south1-kottayam-official.cloudfunctions.net/downloadCertificate?id=${pledgeId}`
-      console.log("📥 Downloading from Cloud Function:", functionUrl)
-
+      const functionUrl = `${DOWNLOAD_BASE_URL}?id=${pledgeId}`
       const response = await fetch(functionUrl)
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
-
       const blob = await response.blob()
       const blobUrl = URL.createObjectURL(blob)
       const anchor = document.createElement("a")
@@ -88,9 +84,8 @@ export default function SuccessView({ name, phone, pledgeId }: SuccessViewProps)
       anchor.click()
       document.body.removeChild(anchor)
       URL.revokeObjectURL(blobUrl)
-      console.log("✅ Certificate downloaded successfully")
-    } catch (error) {
-      console.error("❌ Download failed:", error)
+    } catch (error: unknown) {
+      console.error("Download failed:", error)
       alert(t("success.downloadFailed"))
     } finally {
       setIsDownloading(false)
@@ -99,74 +94,52 @@ export default function SuccessView({ name, phone, pledgeId }: SuccessViewProps)
 
   // Share handler
   const handleShare = async () => {
-    if (!pledgeId) return alert(t("success.notReady"))
+    if (!pledgeId) return
     setIsSharing(true)
 
     const shareTitle = t("success.shareTitle")
     const shareText = t("success.shareText")
-    const functionUrl = `https://asia-south1-kottayam-official.cloudfunctions.net/downloadCertificate?id=${pledgeId}`
+    const functionUrl = `${DOWNLOAD_BASE_URL}?id=${pledgeId}`
 
     try {
-      // First try to fetch the image to share it directly
-      let fileShared = false;
+      let fileShared = false
 
       try {
         const response = await fetch(functionUrl)
-        const blob = await response.blob()
-        const fileName = `${name.replace(/\s+/g, '_')}_Certificate.png`
-        const file = new File([blob], fileName, { type: "image/png" })
-
-        if (navigator.share && navigator.canShare) {
-          const shareData = {
-            title: shareTitle,
-            text: shareText,
-            files: [file]
-          }
-
-          // Check if we can share files
-          if (navigator.canShare(shareData)) {
+        if (response.ok) {
+          const blob = await response.blob()
+          const fileName = `${name.replace(/\s+/g, '_')}_Certificate.png`
+          const file = new File([blob], fileName, { type: "image/png" })
+          const shareData = { title: shareTitle, text: shareText, files: [file] }
+          if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
             await navigator.share(shareData)
-            console.log("✅ Certificate image shared successfully")
-            fileShared = true;
+            fileShared = true
           }
         }
-      } catch (fetchError) {
-        console.log("Could not process image for sharing:", fetchError)
+      } catch {
+        // image fetch/share failed — fall through to text share
       }
 
-      // If file sharing failed or wasn't possible, fall back to text/link sharing
       if (!fileShared) {
         if (navigator.share) {
-          await navigator.share({
-            title: shareTitle,
-            text: shareText + `\n\n${certificateUrl}`
-          })
-          console.log("✅ Shared URL")
+          await navigator.share({ title: shareTitle, text: shareText + `\n\n${certificateUrl}` })
         } else {
-          // Fallback to clipboard
-          const textToCopy = `${shareText}\n\nView my certificate: ${certificateUrl}`
-          await navigator.clipboard.writeText(textToCopy)
+          await navigator.clipboard.writeText(`${shareText}\n\nView my certificate: ${certificateUrl}`)
           alert(t("success.linkCopied") + "\n\n" + t("success.shareOnSocial"))
-          console.log("✅ Copied to clipboard")
         }
       }
-    } catch (error: any) {
-      if (error.name === 'AbortError') {
-        console.log("Share cancelled by user")
-      } else {
-        console.error("Share error:", error)
-        // Final fallback
-        try {
-          const textToCopy = `${shareText}\n\n${certificateUrl}`
-          await navigator.clipboard.writeText(textToCopy)
-          alert(t("success.linkCopied"))
-        } catch (clipboardError) {
-          alert(t("success.manualCopy") + "\n\n" + certificateUrl)
-        }
+    } catch (error: unknown) {
+      if (error instanceof Error && error.name === "AbortError") return
+      console.error("Share error:", error)
+      try {
+        await navigator.clipboard.writeText(`${shareText}\n\n${certificateUrl}`)
+        alert(t("success.linkCopied"))
+      } catch {
+        alert(t("success.manualCopy") + "\n\n" + certificateUrl)
       }
+    } finally {
+      setIsSharing(false)
     }
-
-    setIsSharing(false)
   }
 
   return (
@@ -270,24 +243,33 @@ export default function SuccessView({ name, phone, pledgeId }: SuccessViewProps)
                 <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500 via-cyan-500 to-teal-500 rounded-2xl opacity-50 blur-sm animate-pulse"></div>
                 <div className="relative aspect-[3/2] bg-gradient-to-br from-emerald-800/50 to-cyan-800/50 backdrop-blur-sm rounded-xl border border-white/20 flex items-center justify-center">
                   <div className="text-center p-6">
-                    {/* Animated loading icon */}
-                    <div className="relative inline-flex items-center justify-center mb-4">
-                      <div className="w-16 h-16 border-4 border-emerald-500/30 border-t-emerald-400 rounded-full animate-spin"></div>
-                      <div className="absolute text-3xl">📜</div>
-                    </div>
-                    <p className="text-white font-semibold mb-1">{t("success.generatingTitle")}</p>
-                    <p className="text-emerald-300/80 text-sm">{t("success.generatingWait")}</p>
-
-                    {/* Progress dots */}
-                    <div className="flex justify-center gap-1 mt-3">
-                      {[0, 1, 2].map((i) => (
-                        <div
-                          key={i}
-                          className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce"
-                          style={{ animationDelay: `${i * 0.2}s` }}
-                        />
-                      ))}
-                    </div>
+                    {pollingTimedOut ? (
+                      <>
+                        <div className="text-4xl mb-4">⏱️</div>
+                        <p className="text-white font-semibold mb-1">Certificate is taking longer than expected</p>
+                        <p className="text-emerald-300/80 text-sm">Please refresh the page in a minute to check again.</p>
+                      </>
+                    ) : (
+                      <>
+                        {/* Animated loading icon */}
+                        <div className="relative inline-flex items-center justify-center mb-4">
+                          <div className="w-16 h-16 border-4 border-emerald-500/30 border-t-emerald-400 rounded-full animate-spin"></div>
+                          <div className="absolute text-3xl">📜</div>
+                        </div>
+                        <p className="text-white font-semibold mb-1">{t("success.generatingTitle")}</p>
+                        <p className="text-emerald-300/80 text-sm">{t("success.generatingWait")}</p>
+                        {/* Progress dots */}
+                        <div className="flex justify-center gap-1 mt-3">
+                          {[0, 1, 2].map((i) => (
+                            <div
+                              key={i}
+                              className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce"
+                              style={{ animationDelay: `${i * 0.2}s` }}
+                            />
+                          ))}
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>

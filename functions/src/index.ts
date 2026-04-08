@@ -5,6 +5,15 @@ import sharp from "sharp";
 import * as path from "path";
 import * as fs from "fs";
 
+function escapeXml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
 // Lazy initialization to avoid deployment timeouts
 let initialized = false;
 function initializeFirebase() {
@@ -39,11 +48,8 @@ let cachedLogos: CachedLogos | null = null;
 
 function getLogos(): CachedLogos {
   if (cachedLogos) {
-    console.log("Using cached logos");
     return cachedLogos;
   }
-
-  console.log("Loading logos from disk (first request)...");
   const sveepLogoPath = path.join(__dirname, "sveep-logo.png");
   const ecLogoPath = path.join(__dirname, "ec-logo.png");
   const iiitLogoPath = path.join(__dirname, "iiit-kottayam-logo.png");
@@ -73,13 +79,12 @@ export const generateCertificate = onDocumentCreated({
   concurrency: 80, // Allow concurrent executions
 },
   async (event) => {
-    const startTime = Date.now();
     const snap = event.data;
     if (!snap) return;
 
     const data = snap.data();
     const pledgeId = event.params.pledgeId;
-    const name = data.fullName || "Participant";
+    const name = escapeXml((data.fullName || "Participant").trim());
 
     const width = 1200;
     const height = 850;
@@ -198,7 +203,7 @@ export const generateCertificate = onDocumentCreated({
         Chetan Kumar Meena IAS
       </text>
       <text x="${width - 150}" y="763" font-family="Georgia, serif" font-size="16" fill="#FEF3C7" text-anchor="end">
-        District Election Commissioner
+        District Collector &amp; District Election Officer
       </text>
       <text x="${width - 210}" y="788" font-family="Georgia, serif" font-size="16" fill="#FEF3C7" text-anchor="end">
         Kottayam
@@ -319,9 +324,6 @@ export const generateCertificate = onDocumentCreated({
       { merge: true }
     );
 
-    const duration = Date.now() - startTime;
-    console.log(`Certificate generated for ${pledgeId} in ${duration}ms`);
-
     return { success: true, url: publicUrl };
   }
 );
@@ -419,10 +421,11 @@ export const downloadCertificate = onRequest({
       return;
     }
 
-    const pledgeId = req.query.id as string;
+    const rawId = req.query.id;
+    const pledgeId = typeof rawId === "string" ? rawId : null;
 
-    if (!pledgeId) {
-      res.status(400).send("Missing pledge ID");
+    if (!pledgeId || !/^[a-zA-Z0-9]{20}$/.test(pledgeId)) {
+      res.status(400).send("Invalid pledge ID");
       return;
     }
 
