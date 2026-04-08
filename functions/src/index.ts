@@ -199,13 +199,13 @@ export const generateCertificate = onDocumentCreated({
       </text>
 
       <!-- Footer Right: Collector Info -->
-      <text x="${width - 150}" y="740" font-family="Georgia, serif" font-size="17" fill="#FBBF24" text-anchor="end" font-weight="600">
+      <text x="${width - 200}" y="740" font-family="Georgia, serif" font-size="17" fill="#FBBF24" text-anchor="middle" font-weight="600">
         Chetan Kumar Meena IAS
       </text>
-      <text x="${width - 150}" y="763" font-family="Georgia, serif" font-size="16" fill="#FEF3C7" text-anchor="end">
+      <text x="${width - 200}" y="763" font-family="Georgia, serif" font-size="16" fill="#FEF3C7" text-anchor="middle">
         District Collector &amp; District Election Officer
       </text>
-      <text x="${width - 210}" y="788" font-family="Georgia, serif" font-size="16" fill="#FEF3C7" text-anchor="end">
+      <text x="${width - 200}" y="788" font-family="Georgia, serif" font-size="16" fill="#FEF3C7" text-anchor="middle">
         Kottayam
       </text>
 
